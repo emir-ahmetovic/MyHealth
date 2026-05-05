@@ -1,0 +1,298 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model admin_logs {
+  id             Int       @id @default(autoincrement())
+  admin_id       Int
+  action         String
+  target_user_id Int?
+  timestamp      DateTime? @default(now()) @db.Timestamp(6)
+  users          users     @relation(fields: [admin_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model appointment_types {
+  id               Int            @id @default(autoincrement())
+  name             String         @db.VarChar(50)
+  duration_minutes Int?           @default(30)
+  price            Decimal?       @db.Decimal(10, 2)
+  appointments     appointments[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model appointments {
+  id                  Int                @id @default(autoincrement())
+  patient_id          Int?
+  clinic_id           Int
+  doctor_id           Int?
+  appointment_type_id Int?
+  appointment_time    DateTime           @db.Timestamp(6)
+  duration_minutes    Int?               @default(30)
+  price               Decimal?           @db.Decimal(10, 2)
+  status              String?            @default("scheduled") @db.VarChar(20)
+  suggested_time      DateTime?          @db.Timestamp(6)
+  notes               String?
+  cancelled_reason    String?
+  created_at          DateTime?          @default(now()) @db.Timestamp(6)
+  appointment_types   appointment_types? @relation(fields: [appointment_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  clinics             clinics            @relation(fields: [clinic_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  doctors             doctors?           @relation(fields: [doctor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users               users?             @relation(fields: [patient_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  medical_records     medical_records[]
+  time_slots          time_slots[]
+
+  @@index([clinic_id], map: "idx_appointments_clinic")
+  @@index([appointment_time], map: "idx_appointments_datetime")
+  @@index([doctor_id], map: "idx_appointments_doctor")
+  @@index([patient_id], map: "idx_appointments_patient")
+  @@index([status], map: "idx_appointments_status")
+}
+
+model clinic_contacts {
+  id            Int      @id @default(autoincrement())
+  clinic_id     Int
+  contact_type  String   @db.VarChar(50)
+  contact_value String   @db.VarChar(200)
+  is_primary    Boolean? @default(false)
+  label         String?  @db.VarChar(50)
+  clinics       clinics  @relation(fields: [clinic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([clinic_id], map: "idx_clinic_contacts_clinic")
+  @@index([contact_type], map: "idx_clinic_contacts_type")
+}
+
+model clinic_gallery {
+  id                Int       @id @default(autoincrement())
+  clinic_id         Int
+  image_url         String
+  image_title       String?   @db.VarChar(100)
+  image_description String?
+  display_order     Int?      @default(0)
+  is_primary        Boolean?  @default(false)
+  uploaded_at       DateTime? @default(now()) @db.Timestamp(6)
+  clinics           clinics   @relation(fields: [clinic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([clinic_id], map: "idx_clinic_gallery_clinic")
+  @@index([is_primary], map: "idx_clinic_gallery_primary")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model clinic_hours {
+  id          Int      @id @default(autoincrement())
+  clinic_id   Int
+  day_of_week Int
+  open_time   DateTime @db.Time(6)
+  close_time  DateTime @db.Time(6)
+  is_closed   Boolean? @default(false)
+  clinics     clinics  @relation(fields: [clinic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([clinic_id], map: "idx_clinic_hours_clinic")
+}
+
+model clinic_specialties {
+  id             Int       @id @default(autoincrement())
+  clinic_id      Int
+  specialty_name String    @db.VarChar(100)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  clinics        clinics   @relation(fields: [clinic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([clinic_id], map: "idx_clinic_specialties_clinic")
+}
+
+model clinic_types {
+  id      Int       @id @default(autoincrement())
+  name    String    @unique @db.VarChar(100)
+  clinics clinics[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model clinics {
+  id                 Int                  @id @default(autoincrement())
+  user_id            Int
+  clinic_type_id     Int
+  name               String               @db.VarChar(100)
+  address            String
+  city               String?
+  postal             String?
+  license            String?
+  specializations    String[]
+  phone              String?              @db.VarChar(20)
+  email              String?              @db.VarChar(100)
+  website            String?              @db.VarChar(200)
+  description        String?
+  working_hours      String?
+  is_featured        Boolean?             @default(false)
+  created_at         DateTime?            @default(now()) @db.Timestamp(6)
+  appointments       appointments[]
+  clinic_contacts    clinic_contacts[]
+  clinic_gallery     clinic_gallery[]
+  clinic_hours       clinic_hours[]
+  clinic_specialties clinic_specialties[]
+  clinic_types       clinic_types         @relation(fields: [clinic_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users              users                @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  doctors            doctors[]
+  reviews            reviews[]
+
+  @@index([clinic_type_id], map: "idx_clinics_type")
+}
+
+model doctor_availability_exceptions {
+  id           Int      @id @default(autoincrement())
+  doctor_id    Int
+  date         DateTime @db.Date
+  is_available Boolean? @default(false)
+  reason       String?
+  doctors      doctors  @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model doctor_schedule {
+  id          Int      @id @default(autoincrement())
+  doctor_id   Int
+  day_of_week Int
+  start_time  DateTime @db.Time(6)
+  end_time    DateTime @db.Time(6)
+  doctors     doctors  @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([day_of_week], map: "idx_doctor_schedule_day")
+  @@index([doctor_id], map: "idx_doctor_schedule_doctor")
+}
+
+model doctors {
+  id                             Int                              @id @default(autoincrement())
+  clinic_id                      Int
+  full_name                      String                           @db.VarChar(100)
+  specialization                 String?                          @db.VarChar(100)
+  license_number                 String?                          @unique @db.VarChar(50)
+  education                      String?
+  experience_years               Int?
+  consultation_fee               Decimal?                         @db.Decimal(10, 2)
+  bio                            String?
+  available                      Boolean?                         @default(true)
+  appointments                   appointments[]
+  doctor_availability_exceptions doctor_availability_exceptions[]
+  doctor_schedule                doctor_schedule[]
+  clinics                        clinics                          @relation(fields: [clinic_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  reviews                        reviews[]
+  time_slots                     time_slots[]
+
+  @@index([available], map: "idx_doctors_available")
+  @@index([clinic_id], map: "idx_doctors_clinic")
+  @@index([specialization], map: "idx_doctors_specialization")
+}
+
+model medical_records {
+  id             Int          @id @default(autoincrement())
+  appointment_id Int
+  diagnosis      String?
+  prescription   String?
+  notes          String?
+  attachments    String[]
+  created_at     DateTime?    @default(now()) @db.Timestamp(6)
+  appointments   appointments @relation(fields: [appointment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([appointment_id], map: "idx_medical_records_appointment")
+}
+
+model notification_preferences {
+  id                    Int      @id @default(autoincrement())
+  user_id               Int
+  email_notifications   Boolean? @default(true)
+  sms_notifications     Boolean? @default(false)
+  reminder_hours_before Int?     @default(24)
+  users                 users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_notification_preferences_user")
+}
+
+model notifications {
+  id                Int       @id @default(autoincrement())
+  user_id           Int
+  message           String
+  notification_type String?   @db.VarChar(50)
+  scheduled_for     DateTime? @db.Timestamp(6)
+  sent_at           DateTime? @db.Timestamp(6)
+  is_read           Boolean?  @default(false)
+  created_at        DateTime? @default(now()) @db.Timestamp(6)
+  users             users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([is_read], map: "idx_notifications_read")
+  @@index([user_id], map: "idx_notifications_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model patient_profiles {
+  id                Int     @id @default(autoincrement())
+  user_id           Int
+  emergency_contact String? @db.VarChar(100)
+  emergency_phone   String? @db.VarChar(20)
+  insurance_info    String?
+  medical_history   String?
+  users             users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_patient_profiles_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model reviews {
+  id         Int       @id @default(autoincrement())
+  patient_id Int
+  clinic_id  Int?
+  doctor_id  Int?
+  rating     Int?
+  comment    String?
+  created_at DateTime? @default(now()) @db.Timestamp(6)
+  clinics    clinics?  @relation(fields: [clinic_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  doctors    doctors?  @relation(fields: [doctor_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      users     @relation(fields: [patient_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([clinic_id], map: "idx_reviews_clinic")
+  @@index([doctor_id], map: "idx_reviews_doctor")
+}
+
+model time_slots {
+  id             Int           @id @default(autoincrement())
+  doctor_id      Int
+  date           DateTime      @db.Date
+  start_time     DateTime      @db.Time(6)
+  end_time       DateTime      @db.Time(6)
+  is_available   Boolean?      @default(true)
+  appointment_id Int?
+  appointments   appointments? @relation(fields: [appointment_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  doctors        doctors       @relation(fields: [doctor_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([is_available], map: "idx_time_slots_available")
+  @@index([date], map: "idx_time_slots_date")
+  @@index([doctor_id], map: "idx_time_slots_doctor")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id                       Int                        @id @default(autoincrement())
+  full_name                String                     @db.VarChar(100)
+  email                    String                     @unique @db.VarChar(100)
+  password_hash            String
+  role                     String                     @db.VarChar(20)
+  phone                    String?                    @db.VarChar(20)
+  date_of_birth            DateTime?                  @db.Date
+  gender                   String?                    @db.VarChar(10)
+  is_active                Boolean?                   @default(true)
+  last_login               DateTime?                  @db.Timestamp(6)
+  created_at               DateTime?                  @default(now()) @db.Timestamp(6)
+  admin_logs               admin_logs[]
+  appointments             appointments[]
+  clinics                  clinics[]
+  notification_preferences notification_preferences[]
+  notifications            notifications[]
+  patient_profiles         patient_profiles[]
+  reviews                  reviews[]
+
+  @@index([is_active], map: "idx_users_active")
+  @@index([role], map: "idx_users_role")
+}
