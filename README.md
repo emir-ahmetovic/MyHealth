@@ -1,36 +1,84 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MyHealth
 
-## Getting Started
+MyHealth is a healthcare appointment booking platform built with Next.js and Prisma. It lets patients find clinics and doctors, view available time slots, and book appointments. The project targets private clinics in Bosnia and Herzegovina and includes clinic/doctor management, patient accounts, appointments, medical records and a searchable clinics directory.
 
-First, run the development server:
+**Key features:**
+- Clinic & doctor listing and search
+- Patient registration, authentication and profiles
+- Book appointments and view upcoming visits
+- Time slots, doctor schedules and availability exceptions
+- Clinic gallery, contact information and specialties
+- Admin logs, notifications and basic review system
+
+**Tech stack:**
+- Next.js (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS
+- Prisma ORM + PostgreSQL
+- Radix UI for primitives
+- lucide-react, date-fns, zod and other utilities
+
+## Quick start (local)
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy environment variables (create a `.env` file):
+
+Required (typical):
+
+- `DATABASE_URL` — Postgres connection string
+- `NEXT_PUBLIC_APP_URL` — e.g. `http://localhost:3000`
+- Any other env vars used by your deployment (JWT secret, SMTP, etc.)
+
+3. Run database migrations and seed (Postgres must be reachable):
+
+```bash
+npx prisma migrate dev
+node prisma/seed-timeslots.js   # optional: provided seeds
+node prisma/seed-clinic-types-bosnian.js
+```
+
+4. Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 to view the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- `npm run dev` — run Next.js in development
+- `npm run build` — build for production
+- `npm run start` — run built app
+- `npm run lint` — run linter
 
-## Learn More
+## Database
 
-To learn more about Next.js, take a look at the following resources:
+The project uses Prisma with a PostgreSQL datasource. Schema lives in `prisma/schema.prisma`. If you change the schema run:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npx prisma generate
+npx prisma migrate dev --name your_change
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+There are seed scripts in the `prisma/` folder to populate clinic types and time slots used for development.
 
-## Deploy on Vercel
+## Where to look in the code
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `src/app/page.tsx` — landing page (hero, search, featured clinics)
+- `src/components/shared/` — core UI blocks (search, featured clinics, booking)
+- `src/server/db.ts` — Prisma client instance
+- `prisma/` — schema and seed scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Notes
+
+- The UI is internationalized (Bosnian/English) and primarily written in Bosnian.
+- Environment-specific secrets (JWT, DATABASE_URL, SMTP) must be created before running production builds.
+
+If you'd like, I can also add a short screenshot, CI/deploy instructions, or example `.env` file. 
